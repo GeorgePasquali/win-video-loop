@@ -4,6 +4,7 @@ set file=""
 set vlcExe=""
 set vlcParams= --qt-start-minimized --fullscreen  --play-and-exit --no-video-title-show --no-video-deco --video-on-top --zoom=1.0 --dummy-quiet -I dummy
 set fileFormats= *.webm *.mp4 *.ogg *.mov *.avi *.flv *.wmv
+set delay=3
 
 set path64="C:\Program Files\VideoLAN\VLC"
 set path32="C:\Program Files (x86)\VideoLAN\VLC"
@@ -33,8 +34,25 @@ if not exist "%file%" (
     exit
 )
 
+
 :VIDEOPARTY
-start "" "C:\Program Files\VideoLAN\VLC\vlc.exe" %vlcParams% "%~dp0%file%"
-timeout /t 30 /nobreak
+for %%f in (%fileFormats%) do (
+    start "" "%vlcExe%" %vlcParams% "%%f"
+    call :waitForVideoToFinish
+    timeout /t %delay% /nobreak >nul
+)
 
 goto VIDEOPARTY
+
+:waitForVideoToFinish
+rem Wait for VLC to finish playing the video
+ping -n 1 127.0.0.1 >nul
+timeout /t 1 /nobreak >nul
+echo "pinging"
+tasklist /nh /fi "imagename eq vlc.exe" | find /i "vlc.exe" >nul
+if %errorlevel% equ 0 (
+    rem VLC is still running, wait for a while and check again
+    goto :waitForVideoToFinish
+)
+rem VLC has finished playing the video
+exit /b
